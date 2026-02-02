@@ -1,6 +1,6 @@
 'use client';
 
-import { TaskCategory, getCategoryColor, getCategoryLabel } from '@/lib/tasks';
+import { TaskCategory, getCategoryColor, getCategoryLabel } from '@/lib/types';
 
 interface CategoryFilterProps {
   selected: TaskCategory | null;

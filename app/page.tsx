@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Task, TaskColumn, TaskCategory, getCategoryColor, getCategoryLabel } from '@/lib/tasks';
+import { Task, TaskColumn, TaskCategory } from '@/lib/types';
 import TaskCard from '@/components/TaskCard';
 import CategoryFilter from '@/components/CategoryFilter';
 

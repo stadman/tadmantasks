@@ -1,27 +1,8 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import { Task } from './types';
 
-export type TaskStatus = 'in-progress' | 'queued' | 'done' | 'backlog';
-export type TaskCategory = 'konsensys' | 'tadmanhome' | 'admin' | 'mcfly';
-
-export interface Task {
-  id: string;
-  title: string;
-  description: string;
-  status: TaskStatus;
-  category: TaskCategory;
-  blocker?: string;
-  started?: string;
-  project?: string;
-}
-
-export interface TaskColumn {
-  status: TaskStatus;
-  title: string;
-  tasks: Task[];
-}
-
-// Parse TASKS.md from workspace
+// Parse TASKS.md from workspace - SERVER SIDE ONLY
 export async function parseTasks(): Promise<Task[]> {
   try {
     const tasksPath = path.join(
@@ -54,7 +35,7 @@ export async function parseTasks(): Promise<Task[]> {
   }
 }
 
-function parseSection(text: string, status: TaskStatus): Task[] {
+function parseSection(text: string, status: 'in-progress' | 'queued' | 'done' | 'backlog'): Task[] {
   const tasks: Task[] = [];
   const taskMatches = text.matchAll(/###\s+([^\n]+)\n([\s\S]*?)(?=###|$)/g);
 
@@ -63,7 +44,7 @@ function parseSection(text: string, status: TaskStatus): Task[] {
     const content = match[2];
     
     // Categorize based on content
-    let category: TaskCategory = 'admin';
+    let category: 'konsensys' | 'tadmanhome' | 'admin' | 'mcfly' = 'admin';
     if (content.toLowerCase().includes('sonos') || content.toLowerCase().includes('tadmanhome')) {
       category = 'tadmanhome';
     } else if (content.toLowerCase().includes('konsensys')) {
@@ -114,42 +95,4 @@ function getDefaultTasks(): Task[] {
       category: 'mcfly',
     },
   ];
-}
-
-export function groupTasksByStatus(tasks: Task[]): TaskColumn[] {
-  const columns: TaskColumn[] = [
-    { status: 'in-progress', title: 'In Progress', tasks: [] },
-    { status: 'queued', title: 'Queued', tasks: [] },
-    { status: 'done', title: 'Done', tasks: [] },
-    { status: 'backlog', title: 'Backlog', tasks: [] },
-  ];
-
-  for (const task of tasks) {
-    const column = columns.find(c => c.status === task.status);
-    if (column) {
-      column.tasks.push(task);
-    }
-  }
-
-  return columns;
-}
-
-export function getCategoryColor(category: TaskCategory): string {
-  const colors: Record<TaskCategory, string> = {
-    konsensys: 'bg-blue-100 text-blue-800',
-    tadmanhome: 'bg-purple-100 text-purple-800',
-    admin: 'bg-gray-100 text-gray-800',
-    mcfly: 'bg-green-100 text-green-800',
-  };
-  return colors[category];
-}
-
-export function getCategoryLabel(category: TaskCategory): string {
-  const labels: Record<TaskCategory, string> = {
-    konsensys: 'Konsensys',
-    tadmanhome: 'TadmanHome',
-    admin: 'Admin',
-    mcfly: 'McFly',
-  };
-  return labels[category];
 }

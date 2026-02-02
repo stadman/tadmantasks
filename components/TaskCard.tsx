@@ -1,6 +1,6 @@
 'use client';
 
-import { Task, getCategoryColor, getCategoryLabel } from '@/lib/tasks';
+import { Task, getCategoryColor, getCategoryLabel } from '@/lib/types';
 
 interface TaskCardProps {
   task: Task;
