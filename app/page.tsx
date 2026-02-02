@@ -13,6 +13,7 @@ import {
   PointerSensor,
   useSensor,
   useSensors,
+  useDroppable,
 } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { useSortable } from '@dnd-kit/sortable';
@@ -40,6 +41,51 @@ function SortableTaskCard({
   return (
     <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
       <TaskCard task={task} onEdit={onEdit} onDelete={onDelete} />
+    </div>
+  );
+}
+
+function DroppableColumn({
+  column,
+  onEdit,
+  onDelete,
+}: {
+  column: TaskColumn;
+  onEdit: (task: Task) => void;
+  onDelete: (id: string) => void;
+}) {
+  const { setNodeRef, isOver } = useDroppable({
+    id: column.status,
+  });
+
+  return (
+    <div
+      ref={setNodeRef}
+      className={`bg-slate-800/50 backdrop-blur rounded-lg border ${
+        isOver ? 'border-purple-500 bg-slate-800/70' : 'border-slate-700'
+      } p-4 min-h-96 transition-colors`}
+    >
+      <div className="mb-4">
+        <h2 className="text-lg font-semibold text-white">{column.title}</h2>
+        <p className="text-sm text-slate-400">
+          {column.tasks.length} task{column.tasks.length !== 1 ? 's' : ''}
+        </p>
+      </div>
+
+      <SortableContext items={column.tasks.map((t) => t.id)} strategy={verticalListSortingStrategy}>
+        <div className="space-y-3">
+          {column.tasks.map((task) => (
+            <SortableTaskCard key={task.id} task={task} onEdit={onEdit} onDelete={onDelete} />
+          ))}
+
+          {column.tasks.length === 0 && (
+            <div className="text-center py-8">
+              <p className="text-sm text-slate-500">No tasks</p>
+              <p className="text-xs text-slate-600 mt-1">Drop tasks here</p>
+            </div>
+          )}
+        </div>
+      </SortableContext>
     </div>
   );
 }
@@ -112,19 +158,36 @@ export default function Home() {
     const activeId = active.id as string;
     const overId = over.id as string;
 
-    // Find which column the task was dropped on
-    const targetColumn = columns.find(
-      (col) => col.status === overId || col.tasks.some((t) => t.id === overId)
-    );
+    // Find the task being dragged
+    const task = columns.flatMap((col) => col.tasks).find((t) => t.id === activeId);
+    if (!task) return;
 
-    if (!targetColumn) return;
+    // Find which column the task was dropped on
+    // overId can be either a column status or another task's id
+    let targetStatus: string | undefined;
+
+    // Check if dropped directly on a column
+    const targetColumn = columns.find((col) => col.status === overId);
+    if (targetColumn) {
+      targetStatus = targetColumn.status;
+    } else {
+      // Dropped on another task - find which column that task is in
+      for (const col of columns) {
+        if (col.tasks.some((t) => t.id === overId)) {
+          targetStatus = col.status;
+          break;
+        }
+      }
+    }
+
+    if (!targetStatus || targetStatus === task.status) return;
 
     // Update task status
     try {
       await fetch(`/api/tasks/${activeId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: targetColumn.status }),
+        body: JSON.stringify({ status: targetStatus }),
       });
 
       // Refresh tasks
@@ -228,51 +291,19 @@ export default function Home() {
           <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               {columns.map((column) => (
-                <SortableContext
+                <DroppableColumn
                   key={column.status}
-                  items={column.tasks.map((t) => t.id)}
-                  strategy={verticalListSortingStrategy}
-                >
-                  <div
-                    id={column.status}
-                    className="bg-slate-800/50 backdrop-blur rounded-lg border border-slate-700 p-4 min-h-96"
-                  >
-                    <div className="mb-4">
-                      <h2 className="text-lg font-semibold text-white">{column.title}</h2>
-                      <p className="text-sm text-slate-400">
-                        {column.tasks.length} task{column.tasks.length !== 1 ? 's' : ''}
-                      </p>
-                    </div>
-
-                    <div className="space-y-3">
-                      {column.tasks.map((task) => (
-                        <SortableTaskCard
-                          key={task.id}
-                          task={task}
-                          onEdit={handleEdit}
-                          onDelete={handleDeleteTask}
-                        />
-                      ))}
-
-                      {column.tasks.length === 0 && (
-                        <div className="text-center py-8">
-                          <p className="text-sm text-slate-500">No tasks</p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </SortableContext>
+                  column={column}
+                  onEdit={handleEdit}
+                  onDelete={handleDeleteTask}
+                />
               ))}
             </div>
 
             <DragOverlay>
               {activeTask ? (
                 <div className="cursor-grabbing">
-                  <TaskCard
-                    task={activeTask}
-                    onEdit={() => {}}
-                    onDelete={() => {}}
-                  />
+                  <TaskCard task={activeTask} onEdit={() => {}} onDelete={() => {}} />
                 </div>
               ) : null}
             </DragOverlay>
