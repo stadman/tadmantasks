@@ -129,8 +129,8 @@ export default function Home() {
       const cols: TaskColumn[] = [
         { status: 'in-progress', title: 'In Progress', tasks: grouped['in-progress'] },
         { status: 'queued', title: 'Queued', tasks: grouped['queued'] },
-        { status: 'done', title: 'Done', tasks: grouped['done'] },
         { status: 'backlog', title: 'Backlog', tasks: grouped['backlog'] },
+        { status: 'done', title: 'Done', tasks: grouped['done'] },
       ];
 
       setColumns(cols);
